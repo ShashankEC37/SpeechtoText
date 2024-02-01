@@ -22,11 +22,13 @@ const Example = () => {
         recognition.onend = () => {
           setIsRecording(false);
           // Automatically fetch the audio file when recording ends
+          console.log('Recording ended');
           fetchAudioFile();
         };
 
         recognition.start();
         setIsRecording(true);
+        console.log('Recording started');
       } else {
         console.error('SpeechRecognition is not supported in this browser');
       }
@@ -34,6 +36,7 @@ const Example = () => {
       // Stop recording
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.stop();
+        console.log('Recording stopped');
       }
     }
   };
@@ -57,6 +60,7 @@ const Example = () => {
 
       const data = await res.json();
       setResponse(data);
+      console.log('Response received:', data);
     } catch (err) {
       console.error(err);
     }
