@@ -6,33 +6,35 @@ const Example = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [response, setResponse] = useState(null);
 
-  const startRecording = () => {
-    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      mediaRecorderRef.current = recognition;
+  const toggleRecording = () => {
+    if (!isRecording) {
+      // Start recording
+      if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        mediaRecorderRef.current = recognition;
 
-      recognition.onresult = (event) => {
-        const transcript = event.results[event.results.length - 1][0].transcript;
-        const blob = new Blob([transcript], { type: 'audio/wav' });
-        setFile(blob);
-      };
+        recognition.onresult = (event) => {
+          const transcript = event.results[event.results.length - 1][0].transcript;
+          const blob = new Blob([transcript], { type: 'audio/wav' });
+          setFile(blob);
+        };
 
-      recognition.onend = () => {
-        setIsRecording(false);
-        // Automatically fetch the audio file when recording ends
-        fetchAudioFile();
-      };
+        recognition.onend = () => {
+          setIsRecording(false);
+          // Automatically fetch the audio file when recording ends
+          fetchAudioFile();
+        };
 
-      recognition.start();
-      setIsRecording(true);
+        recognition.start();
+        setIsRecording(true);
+      } else {
+        console.error('SpeechRecognition is not supported in this browser');
+      }
     } else {
-      console.error('SpeechRecognition is not supported in this browser');
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
+      // Stop recording
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+      }
     }
   };
 
@@ -63,18 +65,7 @@ const Example = () => {
   return (
     <div style={{ backgroundColor: '', padding: '20px', borderRadius: '8px,' }}>
       Whisper
-      <button
-        onClick={() => {
-          if (isRecording) {
-            stopRecording();
-          } else {
-            startRecording();
-          }
-        }}
-        onTouchStart={startRecording}
-        onTouchEnd={stopRecording}
-        onTouchCancel={stopRecording}
-      >
+      <button onClick={toggleRecording}>
         {isRecording ? 'Stop Recording' : 'Start Recording'}
       </button>
       {response && <div>{JSON.stringify(response, null, 2)}</div>}
