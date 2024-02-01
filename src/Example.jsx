@@ -1,80 +1,57 @@
-import React, { useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const Example = () => {
-  const mediaRecorderRef = useRef(null);
-  const [file, setFile] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [response, setResponse] = useState(null);
-
-  const toggleRecording = () => {
-    if (!isRecording) {
-      // Start recording
-      if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        mediaRecorderRef.current = recognition;
-
-        recognition.onresult = (event) => {
-          const transcript = event.results[event.results.length - 1][0].transcript;
-          const blob = new Blob([transcript], { type: 'audio/wav' });
-          setFile(blob);
-        };
-
-        recognition.onend = () => {
-          setIsRecording(false);
-          // Automatically fetch the audio file when recording ends
-          console.log('Recording ended');
-          fetchAudioFile();
-        };
-
-        recognition.start();
-        setIsRecording(true);
-        console.log('Recording started');
-      } else {
-        console.error('SpeechRecognition is not supported in this browser');
+    const [transcription, setTranscription] = useState('');
+    let recognition;
+  
+    const startRecording = () => {
+      recognition = new window.webkitSpeechRecognition(); // For WebKit browsers (e.g., Chrome)
+      recognition.onresult = handleSpeechResult;
+      recognition.start();
+    };
+  
+    const handleSpeechResult = (event) => {
+      const result = event.results[0][0].transcript;
+      setTranscription(result);
+    };
+  
+    const stopRecording = () => {
+      if (recognition) {
+        recognition.stop();
+        sendToOpenAIWhisper(transcription);
       }
-    } else {
-      // Stop recording
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-        console.log('Recording stopped');
+    };
+  
+    const sendToOpenAIWhisper = async (text) => {
+      try {
+        const response = await axios.post(
+          'https://api.openai.com/v1/whisper',
+          {
+            text: text,
+          },
+          {
+            headers: {
+              Authorization: 'Bearer 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',
+            },
+          }
+        );
+        console.log('OpenAI Whisper Response:', response.data);
+        // Handle the response as needed
+      } catch (error) {
+        console.error('Error sending to OpenAI Whisper:', error);
+        // Handle the error
       }
-    }
+    };
+  
+    return (
+      <div>
+        <h1>Speech-to-Text</h1>
+        <button onClick={startRecording}>Start Recording</button>
+        <button onClick={stopRecording}>Stop Recording</button>
+        <p>{transcription}</p>
+      </div>
+    );
   };
-
-  const fetchAudioFile = async () => {
-    if (!file) {
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${'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'}`,
-        },
-      });
-
-      const data = await res.json();
-      setResponse(data);
-      console.log('Response received:', data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  return (
-    <div style={{ backgroundColor: '', padding: '20px', borderRadius: '8px,' }}>
-      Whisper
-      <button onClick={toggleRecording}>
-        {isRecording ? 'Stop Recording' : 'Start Recording'}
-      </button>
-      {response && <div>{JSON.stringify(response, null, 2)}</div>}
-    </div>
-  );
-};
 
 export default Example;
